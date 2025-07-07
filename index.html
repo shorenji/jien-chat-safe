@@ -485,7 +485,7 @@ jien-chat-v3.0.6.html
         async function callGeminiAPI(history, instruction) {
     // ★★★ 変更点 ★★★
     // APIキーを削除し、通信先を自分たちのサーバー（バックエンド）に向ける
-    const apiUrl = 'http://localhost:3000/api/chat'; 
+    const apiUrl = 'https://jien-chat-backend.onrender.com'; 
 
     const payload = {
         contents: history,
