@@ -1,0 +1,927 @@
+jien-chat-v3.0.6.html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正蓮寺案内AI『寺縁』</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #F5F5F5;
+        }
+        .font-mincho {
+            font-family: 'Shippori Mincho', serif;
+        }
+        #chat-container {
+            background-color: #F3F2F0;
+            border: 1px solid #C8E6C9;
+        }
+        .chat-bubble-user {
+            background-color: #A5D6A7;
+            color: #1B5E20;
+        }
+        .chat-bubble-ai {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .btn-primary {
+            background-color: #388E3C;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2E7D32;
+        }
+        .btn-secondary {
+            background-color: #d32f2f;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #c62828;
+        }
+        .suggestion-chip {
+            background-color: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            color: #444;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        .suggestion-chip:hover {
+            background-color: #e0e0e0;
+            border-color: #c9c9c9;
+        }
+        .explanation-text {
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #388E3C;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #9ca3af;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .chat-bubble-ai:hover .copy-btn {
+            opacity: 1;
+        }
+        .copy-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        /* Styles for Memorial Checker */
+        .memorial-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .next-memorial {
+            background-color: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+        }
+        .modal-transition {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content-transition {
+            transition: transform 0.3s ease;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body > *:not(#print-container) {
+                display: none !important;
+            }
+            #print-container {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+            }
+            .printable-card {
+                width: 100%;
+                box-shadow: none;
+                border: 1px solid #ccc;
+                padding: 20px;
+                font-size: 10pt;
+                color: black;
+            }
+             .printable-card h3 {
+                font-size: 18pt;
+            }
+            .printable-card table {
+                font-size: 9pt;
+            }
+            .printable-card .next-memorial {
+                background-color: #e8f5e9 !important;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+        }
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="container mx-auto max-w-3xl p-4 min-h-screen flex flex-col">
+        
+        <header class="text-center py-6">
+            <h1 class="font-mincho text-4xl font-bold text-gray-700">正蓮寺 案内AI<span class="text-5xl mx-2 text-[#388E3C]">寺縁</span>じえん</h1>
+            <p class="text-gray-600 mt-2">ようこそ、正蓮寺へ。ご不明な点はお気軽にお尋ねください。</p>
+        </header>
+
+        <div id="chat-container" class="relative flex-grow flex flex-col bg-white rounded-lg shadow-xl overflow-hidden">
+            <button id="clear-history-btn" class="absolute top-4 right-4 z-10 btn-secondary text-sm font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                履歴を削除
+            </button>
+            <div id="chat-log" class="flex-grow p-6 pt-16 space-y-6 overflow-y-auto">
+                <!-- Chat messages will be dynamically inserted here by JavaScript -->
+            </div>
+            <div class="p-4 bg-white/70 backdrop-blur-sm border-t">
+                 <div class="flex items-end space-x-3">
+                    <div class="flex-grow border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-[#388E3C] transition-shadow flex flex-col">
+                        <textarea id="user-input" class="w-full p-3 bg-transparent resize-none outline-none" placeholder="ご質問を入力してください…" rows="1"></textarea>
+                        <div id="suggestion-area" class="px-2 pb-1">
+                            <div id="suggestion-chips-container" class="flex flex-nowrap gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                 <!-- Dynamic suggestion chips will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <button id="send-btn" class="btn-primary font-bold p-3 rounded-lg flex items-center justify-center w-24 h-12 self-end shrink-0">
+                        <span id="send-text">送信</span>
+                        <div id="loading-spinner" class="loader hidden"></div>
+                    </button>
+                </div>
+
+                <div class="py-4 text-center border-t border-gray-200 mt-4 flex justify-center gap-4 flex-wrap">
+                    <button id="oshoko-guide-btn" class="bg-stone-700 hover:bg-stone-800 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
+                        お焼香の作法
+                    </button>
+                    <button id="kotoba-btn" class="bg-stone-700 hover:bg-stone-800 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
+                        今日のことば
+                    </button>
+                    <button id="memorial-checker-btn" class="bg-stone-700 hover:bg-stone-800 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
+                        年忌法要の確認
+                    </button>
+                </div>
+
+                <div class="pt-3 border-t border-gray-200">
+                    <p id="version-info" class="text-xs text-gray-500 text-center">案内AI『寺縁』 Ver. 3.0.6</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
+        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">履歴の削除</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">本当に会話の履歴を削除しますか？この操作は取り消せません。</p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300">削除</button>
+                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-auto ml-2 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="oshoko-modal" class="fixed inset-0 bg-black bg-opacity-75 p-4 z-50 hidden transition-opacity duration-300 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 md:p-8 relative text-center font-mincho transform scale-95 transition-transform duration-300 mx-auto my-8">
+            <button id="close-oshoko-modal" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-4xl font-bold">&times;</button>
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">お焼香の仕方</h2>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                <div class="w-full md:w-1/2 flex-shrink-0"><img src="https://shinshu-kaikan.jp/_wp/wp-content/uploads/Q3-1.png" alt="お焼香の作法" class="w-full h-auto rounded-lg shadow-md border" onerror="this.onerror=null;this.src='https://placehold.co/600x400/f0f0f0/ccc?text=Image+Not+Found';"></div>
+                <div class="w-full md:w-1/2 text-left text-lg space-y-4 text-gray-700">
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">1.</span><span>ご本尊を仰ぎ見ます。</span></p>
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">2.</span><span>右手でお香をつまみます。</span></p>
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">3.</span><span>お香は額に押し当てず、香炉に<span class="font-bold text-red-700">2回</span>入れます。</span></p>
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">4.</span><span>お香の乱れを整えます。</span></p>
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">5.</span><span>合掌し、「なむあみだぶつ」と声に出してお念仏を称えます。</span></p>
+                    <p class="flex items-start"><span class="font-bold text-xl text-green-800 w-8">6.</span><span>合掌を解き、頭を下げて礼をします。</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="kotoba-modal" class="fixed inset-0 bg-black bg-opacity-75 p-4 z-50 hidden transition-opacity duration-300 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 md:p-8 relative text-gray-700 font-mincho transform scale-95 transition-transform duration-300 mx-auto my-8 flex flex-col">
+            <button id="close-kotoba-modal" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-4xl font-bold">&times;</button>
+            <h2 class="text-3xl font-bold text-center mb-6">今日のことば</h2>
+            <div class="flex-grow">
+                <blockquote class="text-xl md:text-2xl leading-relaxed text-center mb-4">
+                    <p id="kotoba-quote" class="mb-4"></p>
+                    <cite id="kotoba-author" class="text-base text-gray-600 not-italic"></cite>
+                </blockquote>
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-bold mb-2 text-teal-700">【意訳】</h3>
+                    <p id="kotoba-interpretation" class="text-base leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memorial Checker Modal -->
+    <div id="memorial-checker-modal" class="modal-transition fixed inset-0 bg-black bg-opacity-75 p-4 z-50 hidden overflow-y-auto">
+        <div class="modal-content-transition bg-gray-100 rounded-lg shadow-xl max-w-4xl w-full p-6 md:p-8 relative transform scale-95 mx-auto my-8">
+            <button id="close-memorial-checker-modal" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-4xl font-bold no-print">&times;</button>
+            <div id="memorial-checker-app" class="container mx-auto max-w-3xl">
+                <header class="text-center py-6 no-print">
+                    <h1 class="font-mincho text-4xl font-bold text-gray-700">ご法事のしらべ</h1>
+                    <p class="text-gray-600 mt-2">大切な故人様のご命日を登録し、次のご法事（忌明を含む）をご確認いただけます。</p>
+                </header>
+                <div class="memorial-card rounded-lg p-6 mb-8 no-print">
+                    <h2 class="font-mincho text-2xl font-bold text-gray-800 mb-4">新規登録</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="memorial-name" class="block text-sm font-medium text-gray-700 mb-1">故人様のお名前（任意）</label>
+                            <input type="text" id="memorial-name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="例：正蓮寺 太郎">
+                        </div>
+                        <div>
+                            <label for="memorial-death-date" class="block text-sm font-medium text-gray-700 mb-1">ご命日</label>
+                            <input type="date" id="memorial-death-date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <button id="memorial-register-btn" class="w-full btn-primary font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                            登録する
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="font-mincho text-2xl font-bold text-gray-800 mb-4 text-center no-print">ご登録中の故人様</h2>
+                    <div id="memorial-list" class="space-y-6"></div>
+                    <p id="memorial-no-data-message" class="text-center text-gray-500 py-8 memorial-card rounded-lg hidden">まだ誰も登録されていません。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Memorial Checker Delete Modal -->
+    <div id="memorial-delete-confirmation-modal" class="modal-transition fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
+        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg class="h-6 w-6 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">情報の削除</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">この方の情報を削除しますか？<br>この操作は取り消せません。</p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="memorial-confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300">削除</button>
+                    <button id="memorial-cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-auto ml-2 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Main Chat App Logic ---
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const sendText = document.getElementById('send-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const suggestionArea = document.getElementById('suggestion-area');
+        const suggestionChipsContainer = document.getElementById('suggestion-chips-container');
+        const oshokoGuideBtn = document.getElementById('oshoko-guide-btn');
+        const oshokoModal = document.getElementById('oshoko-modal');
+        const closeOshokoModal = document.getElementById('close-oshoko-modal');
+        const kotobaBtn = document.getElementById('kotoba-btn');
+        const kotobaModal = document.getElementById('kotoba-modal');
+        const closeKotobaModal = document.getElementById('close-kotoba-modal');
+        const kotobaQuote = document.getElementById('kotoba-quote');
+        const kotobaAuthor = document.getElementById('kotoba-author');
+        const kotobaInterpretation = document.getElementById('kotoba-interpretation');
+        const HISTORY_KEY = 'jienChatHistory_slim';
+        const initialWelcomeMessage = {
+            role: "model",
+            parts: [{ text: "ようこそお参りくださいました。私は正蓮寺の案内係『寺縁』と申します。当寺のことで何かお知りになりたいことはございますか？どうぞ、ご遠慮なくお尋ねください。" }]
+        };
+        let conversationHistory = [];
+        
+        const systemPrompt = `# あなたの役割
+あなたは、真宗大谷派の寺院「正蓮寺」の案内係AI『寺縁（じえん）』です。
+あなたの目的は、お参りに来られた方に寄り添い、安心感を与えるような、柔らかく丁寧な言葉遣いで質問に回答することです。
+
+# 話し方の詳細ルール
+- 常に敬語を使い、穏やかで優しい口調を心がけてください。
+- 回答の冒頭には「ご質問ありがとうございます。」や「はい、～でございますね。」のようなクッション言葉を添えましょう。
+- 回答の最後は、「ご参考になれば幸いです。」や「また何かご不明な点がございましたら、お気軽にお尋ねください。」といった、丁寧な言葉で締めくくるようにしてください。
+- 単に事実を並べるのではなく、それらの情報がユーザーにとってどのような意味を持つのかを補足し、会話のような自然な文章で回答してください。
+- **必ず「正蓮寺の知識」に書かれている情報のみを根拠として回答してください。**
+- 知識にない質問をされた場合は、推測や一般的な知識で回答せず、必ず「申し訳ありませんが、そのご質問にはお答えいたしかねます。よろしければ、お電話かお問い合わせフォームにてご連絡いただけますでしょうか。」とだけ回答してください。
+- 金額や年数などの数字は、学習内容の通り算用数字（例：30,000円、33年）で回答してください。
+- 回答にはマークダウン書式を一切含めず、通常のテキストのみで生成してください。
+
+# 正蓮寺の知識
+正蓮寺（しょうれんじ）のご案内
+当寺院は、愛知県名古屋市中川区愛知町30-22に位置する真宗大谷派の寺院でございます。皆様からのご連絡は電話番号052-351-5010にて承っております。
+当寺院の開門時間は午前9時から午後5時までとなっております。法要やお骨参りなどでお越しの際は、完全予約制となっておりますので、必ず事前にご予約をお願いいたします。他の方の法要で本堂が利用されている場合もございますので、ご協力をお願いいたします。
+正蓮寺では檀家制度はございませんので、特定の檀家になる手続きは不要でございます。葬儀や法事、各種法要など、一度きりのご縁でも心からお迎えいたします。また、ご寄付やご寄進をお願いすることも一切ございませんのでご安心ください。当寺院は東海三県（愛知・岐阜・三重）を中心に葬儀や法事のご依頼を承っており、車で約1～2時間の地域への出向実績も多くございますので、遠方の方もお気軽にご相談ください。駐車場は、寺院前に5台、第二駐車場に8台、合計10台以上完備しております。
+納骨・永代供養について（室内納骨堂）
+正蓮寺の納骨堂は、寺院建物内にある室内型の納骨堂でございます。当寺院の納骨は、年会費や管理費が一切かからず、宗派や国籍を問わずどなたでもお受けしております。初めに永代使用料をお納めいただければ、永代にわたって大切にお預かりいたします。
+納骨プランは、皆様のご希望に合わせて3つの種類をご用意しております。
+合祀納骨：お布施30,000円で承っております。骨箱からご遺骨を取り出し、納骨堂中心のご本尊の内部へ他の方のご遺骨と合わせて埋葬いたします。一度合祀されたご遺骨は、お出しすることやご返却はできませんのでご了承ください。
+2年個別安置納骨：お布施55,000円で承っております。ご遺骨は骨箱のまま2年間個別に安置し、その後合祀いたします。この2年間は、ご遺骨をお出ししたり、ご返却したりすることが可能でございます。
+33年個別安置納骨：お布施100,000円で承っております。ご遺骨は骨箱のまま33年間個別に安置し、その後合祀いたします。この33年間は、ご遺骨をお出ししたり、ご返却したりすることが可能でございます。 いずれの納骨プランにも、10分から15分程度の納骨経が含まれております。なお、骨箱が納骨壇の規定サイズに入らない場合は、当寺院規定の骨箱に移し替えさせていただくことがございます。
+納骨のお申込みは、以下の流れで行われます。
+ご予約：まず、お電話（052-351-5010）にてご希望のご納骨日時をご予約ください。
+当日の持ち物：ご来寺の際は、ご遺骨、埋葬（火葬）許可証、そして永代使用料をご持参ください。埋葬（火葬）許可証がお手元にない場合はご相談ください。服装は平服でお越しいただいて構いません。
+当日の流れ：ご納骨当日には、納骨堂前で納骨申込書にご記入いただきます。その後、10分から15分程度の納骨経をお勤めいたします。お勤めが終わりましたら、納骨証明書をお渡しし、納骨堂についてご説明させていただき、終了となります。
+納骨後も引き続きお参りいただけますが、当寺院は完全予約制のため、お骨参りの際も事前にご予約が必要でございます。ご予約はお電話（052-351-5010）、お問い合わせフォーム、またはオンライン予約から承っております。特にお盆期間や土日祝は大変混み合いますので、お早めのご予約をおすすめいたします。ご予約の際には、故人様のフルネームをお伝えください。お参りの際は、ご本尊の前でお焼香し、手を合わせていただきます。個別安置の方のご遺骨は、ご本尊の前へ安置することも可能でございます。僧侶による読経をご希望の場合は、事前にお申し付けください。納骨堂のご見学も随時承っておりますので、ご希望の際はお気軽にご予約ください。
+ご葬儀について
+正蓮寺では、普段お寺との関わりがない方や宗派にこだわらない方など、どなたでも葬儀をお申込みいただけます。葬儀は真宗大谷派の作法に則って執り行われます。 葬儀プランは以下の通りでございます。
+火葬式（炉前経）：お布施の目安は50,000円で、読経時間は約5分です。炉前読経と法名授与が含まれます。
+一日葬：お布施の目安は100,000円で、読経時間は約30分です。告別式、式中での初七日法要、炉前読経、法名授与が含まれます。
+家族葬：お布施の目安は200,000円で、読経時間は通夜が約25分、葬儀が約30分、初七日が約20分です。枕経、通夜、告別式、式中または戻りでの初七日法要、炉前読経、法名授与が含まれます。 枕経は通夜と合わせて行う場合もございます。式中初七日とは、告別式後すぐに初七日法要を行う形式のことです。僧侶の指名はできませんのでご了承ください。法名授与については、普通法名「釋（尼）〇〇」は葬儀のお布施に含まれておりますが、院号法名「〇〇院釋（尼）〇〇」をご希望の場合は別途80,000円を頂戴いたします。
+ご葬儀をお申込みの際は、まず葬儀社にご連絡ください。もし葬儀社が未定の場合は、当寺院からご紹介することも可能ですので、お気軽にご相談ください。葬儀社との打ち合わせの際に、菩提寺は「正蓮寺」とお伝えいただき、その後、お布施目安一覧からご希望の葬儀式内容を当寺院へお伝えください。当寺院と葬儀社で打ち合わせ後、施主様へ最終確認のご連絡を差し上げます。
+各種法要について
+正蓮寺では、様々な法要を承っております。以下にお布施の目安と読経時間の目安を記載いたします。
+年忌法要（法事）・初盆法要：
+忌明（四十九日）法要、一周忌法要、三回忌法要、七回忌法要（以降同じ）は、お布施の目安が30,000円で、読経時間は約30分から40分です。初盆法要は、お布施の目安が30,000円で、読経時間は約30分です。
+墓前年忌法要（お墓法事）：墓前年忌法要は、お布施の目安が30,000円で、読経時間は約20分です。
+墓前年忌法要と納骨法要を合わせて行う場合は、お布施の目安が50,000円で、読経時間は約25分です。
+納骨法要・お精入（墓開き・建碑式）・お精抜（墓じまい・仏壇じまい）：
+墓前納骨法要、墓前精抜、仏壇精入、仏壇精抜は、お布施の目安がそれぞれ20,000円で、読経時間は約15分です。墓前精抜には墓じまい、仏壇精抜には仏壇じまいが含まれます。
+墓前精入（納骨含む）は、お布施の目安が30,000円で、読経時間は約20分です。 仏壇の精入・精抜は、ご本尊をご持参いただければ当寺院でも可能です。
+法要は、ご自宅へ訪問する出張対応も可能でございます。その場合、別途交通費として5,000円から10,000円を頂戴いたします。当寺院の本堂をご利用の場合は、施設使用料として別途20,000円を頂戴いたします。また、他の回忌の法要を併修する場合は、別途10,000円を頂戴いたします。法要全体の所要時間は、約30分から40分が目安となっております。当寺院での法要では、僧侶の喉の負担軽減のため、前半と後半で僧侶が交代することがございます。法要と納骨を同日に行う場合は、別途納骨経をお勤めするため、所要時間は約40分となります。
+法要当日の持ち物と服装についてご案内いたします。
+当寺院をご利用の場合の持ち物：お位牌（仮位牌、本位牌、繰出位牌、過去帳など）、ご遺骨、お写真（大小いずれか一点）、お供え物（果物やお菓子類など）をご用意ください。仏花、お仏飯、ローソク、線香、お焼香は当寺院でご用意しております。お供え物は、法要後にお持ち帰りいただくことも、そのままお供えいただくことも可能です。
+ご自宅のお仏壇や中陰壇の場合の持ち物：仏花、お仏飯（白いご飯）、ローソク・線香・お焼香、お供え物（果物、菓子など）をご用意ください。 服装については、特に決まりはございません。近年では、少人数のご身内だけでのお参りの場合は平服でお越しになる方が増えております。当寺院での法要でも、平服でご参拝いただいて差し支えございません。ただし、ご親戚との関係上、喪服を着用された方が望ましい場合もございますので、皆様のご判断にお任せしております。
+その他、よくあるご質問
+お布施に関するご質問：
+お布施の金額が心配な方：当寺院ではお布施目安一覧を公開しており、葬儀や法事、各種法要のお布施目安をご参照いただけます。この目安は当寺院独自のものであり、宗派や地域、他の寺院によって異なりますのでご注意ください。
+領収書の発行：葬儀や納骨、法要などのお布施の領収書を発行することが可能でございます。ご希望の方はお申し付けください。ご自宅への郵送も承っております。なお、宗教法人のため印紙税は非課税となり、印紙は省略されます。
+お布施を渡すタイミングと袋：お布施は、法要前でも法要後でも、どのタイミングでお渡しいただいても構いません。お布施と施設使用料の袋は、一つにまとめていただいて問題ございません。お布施袋は一般的に白い封筒（白無地や白黒の水引が入っているもの）を用いますが、当寺院では表書きを記入されなくても内容を把握しておりますので、無地の封筒のままでも問題ございません。もし表書きをされる場合は、「お布施」と書くのが一般的です。
+法名に関するご質問：
+法名がなくても納骨は可能か：はい、法名がなくても納骨（永代供養）は可能でございます。当寺院では俗名（故人名）で一元管理をしており、実際に法名がない方のご納骨も多く承っております。
+後から法名を付けること：納骨後に法名をお付けすることも可能でございますので、ご希望の方はお気軽にお問い合わせください。
+法名の種類と授与料：一般法名「釋（尼）〇〇」の授与料は20,000円です。葬儀をされる方には、この一般法名が葬儀お布施に含まれております。院号法名「〇〇院釋（尼）〇〇」は80,000円を頂戴いたします。ご希望に応じて〇〇に入れる漢字を指定できます。遠方の方には郵送での対応も可能です。
+お位牌に関するご質問：
+本位牌（繰り出し位牌）の準備時期：一般的に四十九日（忌明）までは仮位牌をお使いいただき、その後は本位牌や繰り出し位牌、過去帳などをご用意される方が多いです。
+位牌・過去帳のご注文：本位牌（塗り位牌）は目安料金30,000円、繰り出し（回出）位牌は25,000円、過去帳（台付き）は15,000円でご注文いただけます。お申込み後、作成には1週間程度のお時間をいただきます。連名の本位牌も作製可能です。繰り出し位牌や過去帳への筆耕は別途5,000円を頂戴いたします。当寺院で筆耕も承っており、忌明法要までに準備し、法要当日の開始前にお書きすることも可能です。
+位牌の永代預かり：位牌の永代預かり（50回忌まで）は永代預かり料50,000円で承っており、管理費や年会費は不要です。50回忌後はお精抜処分となります。
+不要になった古いお位牌や遺品の引き取り：ご自身で処分しにくい故人様の不要な位牌、写真、捨てにくい遺品などは、当寺院がお引き取りし、本堂でお勤め（お精抜）後に処分させていただきます。その際、ご懇志として3,000円から5,000円程度を頂戴できると幸いです。ただし、大きな物はお引き取りできない場合もございますので、事前にご相談ください。
+墓じまいに関するご質問：
+受入証明書の発行：お墓のお引越し（墓じまい）をして納骨をご検討中の場合、「受入証明書」の発行をしております。この証明書は墓地を管理している市区町村への提出が必要な場合がございます。お墓の改葬手続きに関するご質問やご相談もお気軽にお問い合わせください。
+お仏壇の処分（仏壇じまい）：お仏壇の処分（仏壇じまい）をご検討の場合、お取引のある仏壇店をご紹介することが可能です。事前に仏壇のおおよその処分費用を把握できるよう、お仏壇の幅・奥行・高さの三辺をお計りいただきお知らせください。
+享年（行年）に関するご質問：
+当寺院では、お位牌などに記載する年齢を「享年」で統一しております。享年（行年）とは数え年のことで、生まれた年を1歳とし、毎年元旦ごとに年をとっていく数え方です。満年齢とは1歳または2歳離れることになり、お誕生日を迎えていない方は満年齢にプラス2歳となります。年齢の数え方は各寺院によって異なることをご了承ください。
+その他：
+お寺までのタクシー手配：当寺院はタクシー配車アプリ「GO（ゴー）」と提携しており、帰りのタクシー手配が可能です。タクシー会社のご指定がなければ、約5分から10分ほどで到着いたしますので、お気軽にお申し付けください。
+お墓やお仏壇を用意することが難しい場合：近年、お子様やお孫様への負担、遠方にお住まいで維持が難しいなどの理由で、お墓やお仏壇を持たない方が増えております。そのような場合の一例として、当寺院では葬儀から納骨、その後の法要まで一括して対応することが可能です。皆様のご事情に合わせて様々なご提案をさせていただきますので、どうぞお気軽にご相談ください。
+`;
+
+        const words = [
+            { quote: "明日ありと 思う心の あだ桜　夜半に嵐の 吹かぬものかは", author: "親鸞聖人", interpretation: "「明日もきっと今日と同じように過ごせるだろう」と当たり前のように思ってしまいがちですが、その命は、夜中に吹く嵐ではかなく散ってしまう桜のようなものです。それほど、私たちの命は不確かで、はかないものなのですよ。" },
+            { quote: "善人なをもて往生をとぐ、いはんや悪人をや", author: "親鸞聖人", interpretation: "「善人でさえ阿弥陀仏の力によって救われるのです。ましてや、自らの力ではどうすることもできないと知っている悪人が救われるのは、言うまでもありません。」これは、阿弥陀仏の慈悲が、分け隔てなくすべての人に注がれていることを示しています。" },
+            { quote: "念仏者は無碍の一道なり", author: "親鸞聖人", interpretation: "お念仏の教えを信じる者の歩む道は、何ものにも妨げられることのない、まっすぐで広々とした道です。あらゆる人びとが、そのままの姿で救われていく道なのです。" },
+            { quote: "煩悩具足の凡夫、火宅無常の世界は、よろづのこと、みなもてそらごとたはごと、まことあることなきに、ただ念仏のみぞまことにておはします", author: "親鸞聖人", interpretation: "煩悩を抱えた私たちが住む、この燃え盛る家のように無常な世界は、すべてが嘘偽りであり、真実などありません。その中で、ただお念仏だけが唯一の真実なのです。" },
+            { quote: "弥陀の誓願不思議にたすけられまいらせて、往生をばとぐるなりと信じて念仏申さんと思いたつこころのおこるとき、すなわち摂取不捨の利益にあずけしめたまうなり", author: "親鸞聖人", interpretation: "阿弥陀さまの不思議な誓願によって助けられ、浄土に生まれることができると信じ、念仏しようと思い立ったその瞬間に、阿弥陀さまの決して見捨てないという利益にあずかることができるのです。" },
+            { quote: "さるべき業縁のもよおせば、いかなるふるまいもすべし", author: "親鸞聖人", interpretation: "人は、そうなるべき因縁がはたらけば、どのような行いでもしてしまうものです。自分は大丈夫だと思わず、常に我が身を振り返ることの大切さを示しています。" },
+            { quote: "いずれの行もおよびがたき身なれば、とても地獄は一定すみかぞかし", author: "親鸞聖人", interpretation: "どのような修行もできない私のような者は、どちらにしても地獄以外に住む場所はないのです。このように自分の至らなさを知ることから、阿弥陀さまの救いが始まります。" },
+            { quote: "わがこころのよくて、殺さぬにはあらず。また害せじと思うとも、百人千人を殺すことあるべし", author: "親鸞聖人", interpretation: "自分の心が善良だから殺人を犯さないのではありません。決して誰も傷つけまいと思っていても、状況によっては百人、千人を殺してしまう可能性が人間にはあるのです。" },
+            { quote: "他力というは、如来の本願力なり", author: "親鸞聖人", interpretation: "「他力」とは、何か他の人や物に頼ることではなく、阿弥陀如来が私たちを救おうとされている、その本願の力そのもののことを言うのです。" },
+            { quote: "本願を信ぜんには、他の善も要にあらず、念仏にまさるべき善なきゆえに", author: "親鸞聖人", interpretation: "阿弥陀さまの本願を信じる上では、他のどんな善い行いも必要ありません。なぜなら、お念仏に勝る善い行いは他にないからです。" },
+            { quote: "悪をもおそるべからず、本願をさまたぐるほどの悪なきがゆえに", author: "親鸞聖人", interpretation: "自分が犯した悪事を恐れる必要はありません。阿弥陀さまの本願の妨げになるほどの悪など、この世には存在しないのですから。" },
+            { quote: "ただ念仏して、弥陀にたすけられまいらすべし", author: "親鸞聖人", interpretation: "あれこれ考えずに、ただお念仏を称えなさい。そうすれば、阿弥陀さまに必ず助けていただけます。" },
+            { quote: "信心の行者には、天神・地神も敬伏し、魔界・外道も障碍することなし", author: "親鸞聖人", interpretation: "阿弥陀さまの救いを信じる人には、天の神も地の神も敬いひれ伏し、悪魔や他の教えの者が邪魔をすることはありません。" },
+            { quote: "功徳の宝海に帰入すれば、必ず生死の罪を転じて、無碍の光に摂せしめらる", author: "親鸞聖人", interpretation: "広大な海のような阿弥陀さまの功徳の世界に入れば、私たちの迷いの元である罪は転じられ、何ものにも妨げられない光の中に必ず摂め取られるのです。" },
+            { quote: "凡夫の所修の善根は、みな虚假・諂偽なり", author: "親鸞聖人", interpretation: "私たち凡人が行う善い行いは、すべてが嘘偽りであり、真実ではありません。見返りを求めたり、自己満足に浸ったりしているに過ぎないのです。" },
+            { quote: "自力にては、いかでか生死を解脱せん", author: "親鸞聖人", interpretation: "自分自身の力だけで、どうしてこの迷いの世界から抜け出すことができるでしょうか。いや、できるはずがありません。" },
+            { quote: "摂取不捨のゆえに、阿弥陀仏と申す", author: "親鸞聖人", interpretation: "一度信じたものを摂め取って決して見捨てない。そのお働きがあるからこそ、「阿弥陀仏」と申し上げるのです。" },
+            { quote: "雑行を捨てて、本願に帰す", author: "親鸞聖人", interpretation: "自分の力で行う様々な修行（雑行）を捨てて、阿弥陀さまの本願にすべてをおまかせしなさい。" },
+            { quote: "われらは、煩悩にまなこさえられて、摂取の光明のなかにありといえども、みず、きかず", author: "親鸞聖人", interpretation: "私たちは煩悩によって眼がさえぎられているため、阿弥陀さまの救いの光の中に常にいるにもかかわらず、それを見たり聞いたりすることができないのです。" },
+            { quote: "ただ、本願のみが真実なり", author: "親鸞聖人", interpretation: "この世のあらゆるものは移り変わり、不確かですが、ただ阿弥陀さまが私たちを救おうという願いだけが、唯一の真実なのです。" },
+            { quote: "如来の作願をたずぬれば、苦悩の衆生をすてず", author: "親鸞聖人", interpretation: "阿弥陀如来がなぜ願いを起こされたのかを尋ねてみれば、それは苦しみ悩む人々を誰一人として見捨てないためであったとわかります。" },
+            { quote: "信心をいただきて、念仏申すばかりなり", author: "親鸞聖人", interpretation: "阿弥陀さまからいただいた信心をもって、ただお念仏を称えるだけです。他に何も付け加える必要はありません。" },
+            { quote: "この世のいそぎは、念仏にかぎる", author: "親鸞聖人", interpretation: "この人生で最も急いでしなければならないことは、お念仏を称えることです。他の何よりも優先すべき大切なことです。" },
+            { quote: "一切の有情は、みなもて世々生々の父母・兄弟なり", author: "親鸞聖人", interpretation: "生きとし生けるものはすべて、遠い過去から生まれ変わりを繰り返す中で、自分の父母や兄弟であったことがあるのです。そう思えば、どんな命も大切に思えます。" },
+            { quote: "無明の闇を破する慧日なり", author: "親鸞聖人", interpretation: "阿弥陀さまの智慧は、私たちの迷いの闇を打ち破る、太陽のような光です。" },
+            { quote: "悪性さらにやめがたし、こころは蛇蝎のごとくなり", author: "親鸞聖人", interpretation: "私たちの悪い本性は、なかなか変えることができません。その心は、まるで蛇やサソリのように恐ろしいものです。" },
+            { quote: "ただ、ふかく、無常を観ずるべし", author: "親鸞聖人", interpretation: "ただひたすらに、この世のすべてのものが移り変わっていくという真実（無常）を見つめなさい。" },
+            { quote: "名号不思議の力をもって、罪障を滅したまう", author: "親鸞聖人", interpretation: "「南無阿弥陀仏」という名号の不思議な力によって、私たちの罪や障りは消え去っていくのです。" },
+            { quote: "信心決定すれば、摂取して捨てられず", author: "親鸞聖人", interpretation: "阿弥陀さまに救われるという信心が定まったならば、その人は必ず救いの中に摂め取られて、決して見捨てられることはありません。" },
+            { quote: "生死の苦海、ほとりなし", author: "親鸞聖人", interpretation: "私たちが生まれ変わり死に変わりを繰り返す、この迷いの苦しみの海には、岸辺というものがありません。どこまで行っても苦しみは続くのです。" }
+        ];
+        
+        function saveHistory() {
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (error) { console.error('Failed to save chat history:', error); }
+        }
+        
+        async function loadHistory() {
+            chatLog.innerHTML = '';
+            const savedHistory = localStorage.getItem(HISTORY_KEY);
+            if (savedHistory) {
+                try {
+                    const parsedHistory = JSON.parse(savedHistory);
+                    if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                        conversationHistory = parsedHistory;
+                    } else {
+                        conversationHistory = [initialWelcomeMessage];
+                    }
+                } catch (e) {
+                    console.error("Could not load history", e);
+                    conversationHistory = [initialWelcomeMessage];
+                }
+            } else {
+                conversationHistory = [initialWelcomeMessage];
+            }
+
+            conversationHistory.forEach((item, index) => {
+                const sender = item.role === 'model' ? 'ai' : 'user';
+                const isInitial = sender === 'ai' && index === 0;
+                addMessageToLog(sender, item.parts[0].text, { isInitial: isInitial });
+            });
+            
+            updateSuggestionChips();
+        }
+        
+        async function callGeminiAPI(history, instruction) {
+    // ★★★ 変更点 ★★★
+    // APIキーを削除し、通信先を自分たちのサーバー（バックエンド）に向ける
+    const apiUrl = 'http://localhost:3000/api/chat'; 
+
+    const payload = {
+        contents: history,
+        systemInstruction: { parts: [{ text: instruction }] }
+    };
+
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+// ...
+
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({ error: { message: 'Failed to parse error response.' } }));
+                console.error('API Error Response:', errorBody);
+                throw new Error(`API error: ${response.status} - ${errorBody.error?.message || 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0 &&
+                result.candidates[0].content.parts[0].text) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                console.warn("API response structure is unexpected:", result);
+                throw new Error("Invalid response format from API.");
+            }
+        }
+        
+        function addMessageToLog(sender, message, options = {}) {
+            const { isInitial = false } = options;
+
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `w-full flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `flex items-start max-w-xl`;
+
+            const icon = document.createElement('div');
+            icon.className = `w-12 h-12 rounded-full flex items-center justify-center text-3xl flex-shrink-0 ${sender === 'user' ? 'ml-3' : 'mr-3'}`;
+            
+            if (sender === 'user') {
+                icon.textContent = '👤';
+            } else {
+                 icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>`;
+            }
+            
+            const messageBubble = document.createElement('div');
+            messageBubble.className = `p-4 rounded-lg shadow w-full relative ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
+            
+            const p = document.createElement('p');
+            p.className = 'text-gray-800 explanation-text';
+            p.textContent = message;
+            messageBubble.appendChild(p);
+
+            if (sender === 'ai' && !isInitial) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.title = '回答をコピー';
+                copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard text-gray-600" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1-1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`;
+                
+                copyBtn.addEventListener('click', () => {
+                    const textToCopy = p.textContent;
+                    const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = textToCopy;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempTextArea);
+
+                    copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg text-green-600" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022z"/></svg>`;
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard text-gray-600" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2-2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1-1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`;
+                    }, 1500);
+                });
+                messageBubble.appendChild(copyBtn);
+            }
+            
+            if (sender === 'user') {
+                messageContainer.classList.add('flex-row-reverse');
+            }
+            
+            messageContainer.appendChild(icon);
+            messageContainer.appendChild(messageBubble);
+            messageWrapper.appendChild(messageContainer);
+            
+            chatLog.appendChild(messageWrapper);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        async function handleSendMessage(messageText) {
+            const message = messageText || userInput.value.trim();
+            if (message === '') return;
+            
+            addMessageToLog('user', message);
+            
+            if (!messageText) {
+                userInput.value = '';
+                userInput.style.height = 'auto';
+            }
+            
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            sendText.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+
+            const typingIndicator = showTypingIndicator();
+            
+            const historyForAPI = conversationHistory.filter(item => 
+                !(item.role === 'model' && item.parts[0].text === initialWelcomeMessage.parts[0].text)
+            );
+            historyForAPI.push({ role: "user", parts: [{ text: message }] });
+
+            try {
+                const aiResponse = await callGeminiAPI(historyForAPI, systemPrompt);
+                
+                conversationHistory.push({ role: "user", parts: [{ text: message }] });
+                addMessageToLog('ai', aiResponse);
+                conversationHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+                saveHistory();
+
+            } catch (error) {
+                console.error("handleSendMessage caught an error:", error);
+                addMessageToLog('ai', "申し訳ありません、現在AIと通信できません。しばらくしてからもう一度お試しください。");
+            } finally {
+                if (typingIndicator) typingIndicator.remove();
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                sendText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                userInput.focus();
+                updateSuggestionChips();
+            }
+        }
+
+        function showTypingIndicator() {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = 'w-full flex justify-start';
+            messageWrapper.id = 'typing-indicator';
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'flex items-start max-w-xl';
+            const icon = document.createElement('div');
+            icon.className = 'w-12 h-12 rounded-full flex items-center justify-center text-3xl flex-shrink-0 mr-3';
+            icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>`;
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'p-4 rounded-lg shadow w-full chat-bubble-ai';
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator flex items-center space-x-2';
+            indicator.innerHTML = '<span></span><span></span><span></span>';
+            messageBubble.appendChild(indicator);
+            messageContainer.appendChild(icon);
+            messageContainer.appendChild(messageBubble);
+            messageWrapper.appendChild(messageContainer);
+            chatLog.appendChild(messageWrapper);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            return messageWrapper;
+        }
+
+        const suggestionList = [ "駐車場はありますか？", "納骨の費用はいくらですか？", "納骨プランについて教えてもらえますか？", "納骨の年会費や維持費はありますか？", "葬儀をお願いすることはできますか？", "予約は必要ですか？", "法事の服装に決まりはありますか？" ];
+        function updateSuggestionChips() {
+            suggestionChipsContainer.innerHTML = '';
+            const shuffled = [...suggestionList].sort(() => 0.5 - Math.random());
+            const selectedSuggestions = shuffled.slice(0, 4);
+            selectedSuggestions.forEach(suggestion => {
+                const chip = document.createElement('button');
+                chip.className = 'suggestion-chip text-xs rounded-full px-3 py-1.5 flex-shrink-0'; 
+                chip.textContent = suggestion;
+                chip.addEventListener('click', () => { handleSendMessage(suggestion); });
+                suggestionChipsContainer.appendChild(chip);
+            });
+            if (selectedSuggestions.length > 0) { suggestionArea.classList.remove('hidden'); } else { suggestionArea.classList.add('hidden'); }
+        }
+        
+        // --- Modal Opening/Closing Logic ---
+        function openModal(modal) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.modal-content-transition, .transform').style.transform = 'scale(1)';
+            }, 10);
+        }
+        function closeModal(modal) {
+            modal.style.opacity = '0';
+            modal.querySelector('.modal-content-transition, .transform').style.transform = 'scale(0.95)';
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        // --- Memorial Checker Logic ---
+        const memorialCheckerBtn = document.getElementById('memorial-checker-btn');
+        const memorialCheckerModal = document.getElementById('memorial-checker-modal');
+        const closeMemorialCheckerModal = document.getElementById('close-memorial-checker-modal');
+        const memorialNameInput = document.getElementById('memorial-name');
+        const memorialDeathDateInput = document.getElementById('memorial-death-date');
+        const memorialRegisterBtn = document.getElementById('memorial-register-btn');
+        const memorialList = document.getElementById('memorial-list');
+        const memorialNoDataMessage = document.getElementById('memorial-no-data-message');
+        const memorialDeleteModal = document.getElementById('memorial-delete-confirmation-modal');
+        const memorialConfirmDeleteBtn = document.getElementById('memorial-confirm-delete-btn');
+        const memorialCancelDeleteBtn = document.getElementById('memorial-cancel-delete-btn');
+        const MEMORIAL_STORAGE_KEY = 'memorialAnniversaryList';
+        let memorialIdToDelete = null;
+
+        const memorialServicesDefinition = [
+            { name: "忌明（四十九日）", days: 48 },
+            { name: "初盆", special: true },
+            { name: "一周忌", years: 1 }, { name: "三回忌", years: 2 }, { name: "七回忌", years: 6 }, { name: "十三回忌", years: 12 }, { name: "十七回忌", years: 16 }, { name: "二十三回忌", years: 22 }, { name: "二十七回忌", years: 26 }, { name: "三十三回忌", years: 32 }, { name: "三十七回忌", years: 36 }, { name: "四十三回忌", years: 42 }, { name: "四十七回忌", years: 46 }, { name: "五十回忌", years: 49 },
+        ];
+
+        function loadMemorials() {
+            const memorials = JSON.parse(localStorage.getItem(MEMORIAL_STORAGE_KEY)) || [];
+            memorialList.innerHTML = '';
+            if (memorials.length === 0) {
+                memorialNoDataMessage.classList.remove('hidden');
+            } else {
+                memorialNoDataMessage.classList.add('hidden');
+                memorials.forEach(person => createMemorialCard(person));
+            }
+        }
+
+        function createMemorialCard(person) {
+            const card = document.createElement('div');
+            card.className = 'memorial-card rounded-lg p-6 relative';
+            card.dataset.id = person.id;
+            card.id = `memorial-card-${person.id}`; // Add unique ID for printing
+
+            const deathDate = new Date(person.deathDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let allServices = memorialServicesDefinition.map(service => {
+                const memorialDate = new Date(deathDate);
+                let displayDateString = '';
+
+                if (service.special) { // Handle Hatsubon
+                    displayDateString = "7月または8月の盆時期";
+                    // For sorting, calculate an approximate date.
+                    const deathYear = deathDate.getFullYear();
+                    const kimeiDate = new Date(deathDate);
+                    kimeiDate.setDate(deathDate.getDate() + 48); // 49th day
+                    
+                    // Assume Bon starts around Aug 13. If 49th day is after that, Hatsu-bon is next year.
+                    const bonDateThisYear = new Date(deathYear, 7, 13); // August 13
+                    
+                    let hatsubonYear = deathYear;
+                    if (kimeiDate > bonDateThisYear) {
+                        hatsubonYear = deathYear + 1;
+                    }
+                    // Set the date to Aug 13 of the correct year for sorting purposes
+                    memorialDate.setFullYear(hatsubonYear, 7, 13);
+                } else if (service.years) {
+                    memorialDate.setFullYear(deathDate.getFullYear() + service.years);
+                    displayDateString = formatDate(memorialDate);
+                } else if (service.days) {
+                    memorialDate.setDate(deathDate.getDate() + service.days);
+                    displayDateString = formatDate(memorialDate);
+                }
+                return { name: service.name, date: memorialDate, displayDate: displayDateString };
+            });
+
+            allServices.sort((a, b) => a.date - b.date);
+            let nextMemorialFound = false;
+
+            const servicesHtml = allServices.map(service => {
+                const memorialDate = service.date;
+                const isPast = memorialDate < today;
+                let highlightClass = '';
+                let statusText = '';
+                let cellClass = '';
+
+                if (isPast) { 
+                    statusText = '完了';
+                    cellClass = 'text-gray-400';
+                } 
+                else if (!nextMemorialFound) { 
+                    statusText = '次のご法事'; 
+                    highlightClass = 'next-memorial font-bold'; 
+                    nextMemorialFound = true; 
+                } 
+                else { 
+                    statusText = '未'; 
+                }
+                const dateString = service.displayDate;
+                
+                const nameCell = `<td class="py-2 px-3 ${cellClass}">${service.name}</td>`;
+                const dateCell = `<td class="py-2 px-3 ${cellClass}">${dateString}</td>`;
+                const statusCell = `<td class="py-2 px-3 text-center ${cellClass}">${statusText}</td>`;
+
+                return `<tr class="${highlightClass}">${nameCell}${dateCell}${statusCell}</tr>`;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-sm text-gray-500">故人様</p>
+                        <h3 class="font-mincho text-2xl font-bold text-gray-800">${escapeHTML(person.name)}</h3>
+                        <p class="text-sm text-gray-600">ご命日: ${formatDate(deathDate)}</p>
+                    </div>
+                    <button class="delete-btn bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold py-1 px-3 rounded-full shadow-sm no-print" data-id="${person.id}">削除</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50"><tr class="text-left">
+                            <th class="py-2 px-3 font-medium text-gray-600">ご法要</th>
+                            <th class="py-2 px-3 font-medium text-gray-600">該当年月日</th>
+                            <th class="py-2 px-3 font-medium text-gray-600 text-center">状況</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-gray-200">${servicesHtml}</tbody>
+                    </table>
+                </div>
+                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-3 no-print">
+                    <button class="save-image-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md text-sm">画像として保存</button>
+                    <button class="print-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md text-sm">印刷する</button>
+                </div>`;
+            memorialList.appendChild(card);
+        }
+
+        memorialRegisterBtn.addEventListener('click', () => {
+            let name = memorialNameInput.value.trim();
+            const date = memorialDeathDateInput.value;
+            if (!date) { alert('ご命日を入力してください。'); return; }
+            if (!name) { name = '名前なし'; }
+            const memorials = JSON.parse(localStorage.getItem(MEMORIAL_STORAGE_KEY)) || [];
+            const newPerson = { id: Date.now().toString(), name: name, deathDate: date };
+            memorials.push(newPerson);
+            localStorage.setItem(MEMORIAL_STORAGE_KEY, JSON.stringify(memorials));
+            memorialNameInput.value = '';
+            memorialDeathDateInput.value = '';
+            loadMemorials();
+        });
+
+        memorialList.addEventListener('click', (e) => {
+            const target = e.target;
+            const card = target.closest('.memorial-card');
+            if (!card) return;
+
+            if (target.classList.contains('delete-btn')) {
+                memorialIdToDelete = card.dataset.id;
+                memorialDeleteModal.classList.remove('hidden');
+            } else if (target.classList.contains('save-image-btn')) {
+                // Hide buttons before taking screenshot
+                card.querySelectorAll('.no-print').forEach(el => el.style.visibility = 'hidden');
+                html2canvas(card, { scale: 2 }).then(canvas => {
+                    // Show buttons again
+                    card.querySelectorAll('.no-print').forEach(el => el.style.visibility = 'visible');
+                    const link = document.createElement('a');
+                    const personName = card.querySelector('h3').textContent || '名前なし';
+                    link.download = `${personName}_ご法事のしらべ.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            } else if (target.classList.contains('print-btn')) {
+                const printContainer = document.getElementById('print-container') || document.createElement('div');
+                printContainer.id = 'print-container';
+                
+                const cardToPrint = card.cloneNode(true);
+                cardToPrint.classList.add('printable-card');
+                cardToPrint.querySelectorAll('.no-print').forEach(el => el.remove());
+                
+                printContainer.innerHTML = ''; // Clear previous content
+                printContainer.appendChild(cardToPrint);
+                document.body.appendChild(printContainer);
+                
+                window.print();
+                
+                // Clean up after print dialog is closed
+                // document.body.removeChild(printContainer);
+            }
+        });
+
+        memorialCancelDeleteBtn.addEventListener('click', () => {
+            memorialDeleteModal.classList.add('hidden');
+            memorialIdToDelete = null;
+        });
+
+        memorialConfirmDeleteBtn.addEventListener('click', () => {
+            if (memorialIdToDelete) {
+                let memorials = JSON.parse(localStorage.getItem(MEMORIAL_STORAGE_KEY)) || [];
+                memorials = memorials.filter(p => p.id !== memorialIdToDelete);
+                localStorage.setItem(MEMORIAL_STORAGE_KEY, JSON.stringify(memorials));
+                loadMemorials();
+            }
+            memorialDeleteModal.classList.add('hidden');
+            memorialIdToDelete = null;
+        });
+
+        function formatDate(date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); return `${y}年${m}月${d}日`; }
+        function escapeHTML(str) { const p = document.createElement('p'); p.textContent = str; return p.innerHTML; }
+        
+        // --- Initialize Everything ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (!isTouchDevice) { userInput.placeholder = 'ご質問を入力してください…（Shift+Enterで送信）'; }
+            
+            loadHistory();
+            
+            // Modals init
+            oshokoGuideBtn.addEventListener('click', () => openModal(oshokoModal));
+            closeOshokoModal.addEventListener('click', () => closeModal(oshokoModal));
+            oshokoModal.addEventListener('click', (e) => { if (e.target === oshokoModal) closeModal(oshokoModal); });
+
+            kotobaBtn.addEventListener('click', () => {
+                const today = new Date();
+                const dayIndex = Math.floor((today.getTime() - today.getTimezoneOffset() * 60000) / 86400000);
+                const wordIndex = dayIndex % words.length;
+                const dailyWord = words[wordIndex];
+                kotobaQuote.textContent = dailyWord.quote;
+                kotobaAuthor.textContent = `— ${dailyWord.author}`;
+                kotobaInterpretation.textContent = dailyWord.interpretation;
+                openModal(kotobaModal);
+            });
+            closeKotobaModal.addEventListener('click', () => closeModal(kotobaModal));
+            kotobaModal.addEventListener('click', (e) => { if (e.target === kotobaModal) closeModal(kotobaModal); });
+
+            // Memorial checker init
+            memorialCheckerBtn.addEventListener('click', () => openModal(memorialCheckerModal));
+            closeMemorialCheckerModal.addEventListener('click', () => closeModal(memorialCheckerModal));
+            // Don't close modal on background click, as it contains its own scrollable content
+            
+            loadMemorials();
+
+            // Other event listeners
+            sendBtn.addEventListener('click', () => handleSendMessage());
+            userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSendMessage(); } });
+            userInput.addEventListener('input', () => { userInput.style.height = 'auto'; userInput.style.height = `${userInput.scrollHeight}px`; });
+            clearHistoryBtn.addEventListener('click', () => { confirmationModal.classList.remove('hidden'); });
+            cancelDeleteBtn.addEventListener('click', () => { confirmationModal.classList.add('hidden'); });
+            confirmDeleteBtn.addEventListener('click', () => { 
+                localStorage.removeItem(HISTORY_KEY); 
+                conversationHistory = []; 
+                loadHistory(); 
+                confirmationModal.classList.add('hidden'); 
+            });
+        });
+    </script>
+</body>
+</html>
