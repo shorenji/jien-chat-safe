@@ -1,13 +1,12 @@
 // 必要なツールを読み込む
 require('dotenv').config();
 const express = require('express');
-const fetch = require('node-fetch@2'); // バージョン2を指定
+const fetch = require('node-fetch'); // ★★★ 修正点 ★★★
 const cors = require('cors');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; // Renderが使用するポートに対応
 
-// ★★★ 変更点 ★★★
 // 通信を許可するウェブサイトのリスト
 const allowedOrigins = [
   'https://jien-chat-safe.onrender.com', // Renderのフロントエンド
@@ -16,7 +15,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // 許可リストに含まれているか、(Postmanなどの)オリジン情報がない場合に許可
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -59,5 +57,5 @@ app.post('/api/chat', async (req, res) => {
 
 // サーバーを起動
 app.listen(port, () => {
-    console.log(`サーバーが http://localhost:${port} で起動しました`);
+    console.log(`サーバーがポート ${port} で起動しました`);
 });
