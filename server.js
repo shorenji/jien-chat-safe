@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000; // Renderが使用するポートに対�
 // 通信を許可するウェブサイトのリスト
 const allowedOrigins = [
   'https://jien-chat-safe.onrender.com', // Renderのフロントエンド
-  'https://shorenji.net' // ここにあなたのWordPressサイトのURLを正確に入力してください
+  'https://shorenji.net/' // ここにあなたのWordPressサイトのURLを正確に入力してください
 ];
 
 const corsOptions = {
