@@ -1,61 +1,56 @@
 // 必要なツールを読み込む
 require('dotenv').config();
 const express = require('express');
-const fetch = require('node-fetch'); // ★★★ 修正点 ★★★
+const fetch = require('node-fetch');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3000; // Renderが使用するポートに対応
+const port = 3000;
 
-// 通信を許可するウェブサイトのリスト
-const allowedOrigins = [
-  'https://jien-chat-safe.onrender.com', // Renderのフロントエンド
-  'https://shorenji.net/' // ここにあなたのWordPressサイトのURLを正確に入力してください
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
-};
-
-// 上記の設定でCORSを有効にする
-app.use(cors(corsOptions));
+// おまじない
+app.use(cors());
 app.use(express.json());
-
-// .envファイルから安全にAPIキーを読み込む
-const apiKey = process.env.GOOGLE_API_KEY;
-const googleApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
-    try {
-        const payload = req.body;
-        const response = await fetch(googleApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+  // .envファイルから安全にAPIキーを読み込む
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  
+  try {
+    // フロントエンドから送られてきた会話履歴などを受け取る
+    const payload = req.body;
 
-        if (!response.ok) {
-            const errorBody = await response.json();
-            console.error('Google API Error:', errorBody);
-            throw new Error(`Google API error: ${response.status}`);
-        }
-        const data = await response.json();
-        res.json(data);
+    // サーバーからGoogleのAIへ問い合わせる (APIキーはここで使われる)
+    const response = await fetch(geminiApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload) // 受け取った情報をそのままGoogleへ
+    });
 
-    } catch (error) {
-        console.error('Server Error:', error);
-        res.status(500).json({ error: 'サーバーでエラーが発生しました。' });
+    if (!response.ok) {
+      const errorBody = await response.text(); // エラー時はテキストで内容を確認
+      console.error('Google API Error:', errorBody);
+      throw new Error(`Google API error: ${response.status}`);
     }
+
+    const data = await response.json();
+
+    // AIからの応答をフロントエンドに送り返す
+    res.json(data);
+
+  } catch (error) {
+    console.error('Server Error:', error);
+    res.status(500).json({ error: 'サーバーでエラーが発生しました。' });
+  }
+});
+
+// UptimeRobotの監視や、サーバーが起動しているかを確認するためのルート
+app.get('/', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // サーバーを起動
 app.listen(port, () => {
-    console.log(`サーバーがポート ${port} で起動しました`);
+  console.log(`サーバーが http://localhost:${port} で起動しました`);
 });
