@@ -13,34 +13,31 @@ app.use(cors());
 app.use(express.json());
 
 
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// 【追記箇所①】リクエスト受付時のログ出力
+// リクエスト受付時のログ出力
 // これからサーバーに来るすべての通信は、まずこの場所を通過するようになります。
 app.use((req, res, next) => {
     // 現在時刻と、どのURLへのアクセスがあったかを記録します
     console.log(`[${new Date().toLocaleString('ja-JP')}] リクエストを受け付けました: ${req.method} ${req.url}`);
     next(); // この命令で、チャットボット本体の処理へ進みます
 });
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
 
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
     // .envファイルから安全にAPIキーを読み込む
-    const apiKey = process.env.GEMINI_API_KEY;
+    // ★★★ ここを元の「GOOGLE_API_KEY」に修正しました ★★★
+    const apiKey = process.env.GOOGLE_API_KEY;
     const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     try {
         // フロントエンドから送られてきた会話履歴などを受け取る
         const payload = req.body;
         
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // 【追記箇所②】どんな質問が来たかを具体的にログ出力（任意）
+        // どんな質問が来たかを具体的にログ出力
         // これで、ユーザーがどんな質問をしたか記録できます。
-        if (payload && payload.contents && payload.contents[0] && payload.contents[0].parts) {
+        if (payload && payload.contents && payload.contents[0] && payload.contents[0].parts && payload.contents[0].parts[0].text) {
             console.log('ユーザーからの質問内容:', payload.contents[0].parts[0].text);
         }
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
         // サーバーからGoogleのAIへ問い合わせる（APIキーはここで使われる）
         const response = await fetch(geminiApiUrl, {
@@ -74,9 +71,8 @@ app.get('/uptime', (req, res) => {
 
 // サーバーを起動
 app.listen(PORT, () => {
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // 【修正箇所】サーバー起動時のログ出力
+    // サーバー起動時のログ出力
     // どのポート番号で起動したか、明確にわかるようにしました。
     console.log(`チャットボットサーバーがポート ${PORT} で起動しました。`);
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 });
+
