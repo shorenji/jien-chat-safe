@@ -5,52 +5,78 @@ const fetch = require('node-fetch');
 const cors = require('cors');
 
 const app = express();
-const port = 3000;
+// Renderが指定するPORT、もしくはローカル用の3000番ポートを使用する
+const PORT = process.env.PORT || 3000;
 
 // おまじない
 app.use(cors());
 app.use(express.json());
 
+
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// 【追記箇所①】リクエスト受付時のログ出力
+// これからサーバーに来るすべての通信は、まずこの場所を通過するようになります。
+app.use((req, res, next) => {
+    // 現在時刻と、どのURLへのアクセスがあったかを記録します
+    console.log(`[${new Date().toLocaleString('ja-JP')}] リクエストを受け付けました: ${req.method} ${req.url}`);
+    next(); // この命令で、チャットボット本体の処理へ進みます
+});
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
-  // .envファイルから安全にAPIキーを読み込む
-  const apiKey = process.env.GOOGLE_API_KEY;
-  const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-  
-  try {
-    // フロントエンドから送られてきた会話履歴などを受け取る
-    const payload = req.body;
+    // .envファイルから安全にAPIキーを読み込む
+    const apiKey = process.env.GEMINI_API_KEY;
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-    // サーバーからGoogleのAIへ問い合わせる (APIキーはここで使われる)
-    const response = await fetch(geminiApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload) // 受け取った情報をそのままGoogleへ
-    });
+    try {
+        // フロントエンドから送られてきた会話履歴などを受け取る
+        const payload = req.body;
+        
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        // 【追記箇所②】どんな質問が来たかを具体的にログ出力（任意）
+        // これで、ユーザーがどんな質問をしたか記録できます。
+        if (payload && payload.contents && payload.contents[0] && payload.contents[0].parts) {
+            console.log('ユーザーからの質問内容:', payload.contents[0].parts[0].text);
+        }
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
-    if (!response.ok) {
-      const errorBody = await response.text(); // エラー時はテキストで内容を確認
-      console.error('Google API Error:', errorBody);
-      throw new Error(`Google API error: ${response.status}`);
+        // サーバーからGoogleのAIへ問い合わせる（APIキーはここで使われる）
+        const response = await fetch(geminiApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload) // 受け取った情報をそのままGoogleへ
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text(); // エラー時はテキストで内容を確認
+            console.error('Google API Error Body:', errorBody);
+            throw new Error(`Google API error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // AIからの応答をフロントエンドに送り返す
+        res.json(data);
+
+    } catch (error) {
+        console.error('Server Error:', error);
+        res.status(500).json({ error: 'サーバーでエラーが発生しました。' });
     }
-
-    const data = await response.json();
-
-    // AIからの応答をフロントエンドに送り返す
-    res.json(data);
-
-  } catch (error) {
-    console.error('Server Error:', error);
-    res.status(500).json({ error: 'サーバーでエラーが発生しました。' });
-  }
 });
 
-// UptimeRobotの監視や、サーバーが起動しているかを確認するためのルート
-app.get('/', (req, res) => {
-  res.status(200).send('OK');
+// UptimeRobotなど、サーバーが起動しているかを確認するためのルート
+app.get('/uptime', (req, res) => {
+    res.status(200).send('OK');
 });
+
 
 // サーバーを起動
-app.listen(port, () => {
-  console.log(`サーバーが http://localhost:${port} で起動しました`);
+app.listen(PORT, () => {
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // 【修正箇所】サーバー起動時のログ出力
+    // どのポート番号で起動したか、明確にわかるようにしました。
+    console.log(`チャットボットサーバーがポート ${PORT} で起動しました。`);
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 });
