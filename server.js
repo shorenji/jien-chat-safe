@@ -14,47 +14,43 @@ app.use(express.json());
 
 
 // リクエスト受付時のログ出力
-// これからサーバーに来るすべての通信は、まずこの場所を通過するようになります。
 app.use((req, res, next) => {
-    // 現在時刻と、どのURLへのアクセスがあったかを記録します
     console.log(`[${new Date().toLocaleString('ja-JP')}] リクエストを受け付けました: ${req.method} ${req.url}`);
-    next(); // この命令で、チャットボット本体の処理へ進みます
+    next();
 });
 
 
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
-    // .envファイルから安全にAPIキーを読み込む
-    // ★★★ ここを元の「GOOGLE_API_KEY」に修正しました ★★★
     const apiKey = process.env.GOOGLE_API_KEY;
     const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     try {
-        // フロントエンドから送られてきた会話履歴などを受け取る
         const payload = req.body;
         
-        // どんな質問が来たかを具体的にログ出力
-        // これで、ユーザーがどんな質問をしたか記録できます。
-        if (payload && payload.contents && payload.contents[0] && payload.contents[0].parts && payload.contents[0].parts[0].text) {
-            console.log('ユーザーからの質問内容:', payload.contents[0].parts[0].text);
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        // 【修正箇所】会話履歴（contents）の中から、一番最後の質問を記録するように修正
+        if (payload && payload.contents && Array.isArray(payload.contents) && payload.contents.length > 0) {
+            const lastMessage = payload.contents[payload.contents.length - 1];
+            if (lastMessage.role === 'user' && lastMessage.parts && lastMessage.parts[0] && lastMessage.parts[0].text) {
+                console.log('ユーザーからの質問内容:', lastMessage.parts[0].text);
+            }
         }
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
-        // サーバーからGoogleのAIへ問い合わせる（APIキーはここで使われる）
         const response = await fetch(geminiApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload) // 受け取った情報をそのままGoogleへ
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            const errorBody = await response.text(); // エラー時はテキストで内容を確認
+            const errorBody = await response.text();
             console.error('Google API Error Body:', errorBody);
             throw new Error(`Google API error! status: ${response.status}`);
         }
 
         const data = await response.json();
-
-        // AIからの応答をフロントエンドに送り返す
         res.json(data);
 
     } catch (error) {
@@ -71,8 +67,6 @@ app.get('/uptime', (req, res) => {
 
 // サーバーを起動
 app.listen(PORT, () => {
-    // サーバー起動時のログ出力
-    // どのポート番号で起動したか、明確にわかるようにしました。
     console.log(`チャットボットサーバーがポート ${PORT} で起動しました。`);
 });
 
