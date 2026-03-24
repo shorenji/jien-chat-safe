@@ -12,30 +12,30 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-
 // リクエスト受付時のログ出力
 app.use((req, res, next) => {
     console.log(`[${new Date().toLocaleString('ja-JP')}] リクエストを受け付けました: ${req.method} ${req.url}`);
     next();
 });
 
+// ★★★ 【追加】トップページ（/）にアクセスした時の応答 ★★★
+app.get('/', (req, res) => {
+    res.status(200).send('チャットボットサーバーは正常に稼働中です！');
+});
 
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
     const apiKey = process.env.GOOGLE_API_KEY;
-const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
     try {
         const payload = req.body;
         
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // 【修正箇所】会話履歴（contents）の中から、一番最後の質問を記録するように修正
         if (payload && payload.contents && Array.isArray(payload.contents) && payload.contents.length > 0) {
             const lastMessage = payload.contents[payload.contents.length - 1];
             if (lastMessage.role === 'user' && lastMessage.parts && lastMessage.parts[0] && lastMessage.parts[0].text) {
                 console.log('ユーザーからの質問内容:', lastMessage.parts[0].text);
             }
         }
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
         const response = await fetch(geminiApiUrl, {
             method: 'POST',
@@ -63,9 +63,7 @@ app.get('/uptime', (req, res) => {
     res.status(200).send('OK');
 });
 
-
 // サーバーを起動
 app.listen(PORT, () => {
     console.log(`チャットボットサーバーがポート ${PORT} で起動しました。`);
 });
-
