@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 // フロントエンドからの通信を受け付ける窓口
 app.post('/api/chat', async (req, res) => {
     const apiKey = process.env.GOOGLE_API_KEY;
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-preview:generateContent?key=${apiKey}`;
     try {
         const payload = req.body;
         
